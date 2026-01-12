@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { WebsModule } from './modules/webs/webs.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
+import { TicketReviewsModule } from './modules/ticket-reviews/ticket-reviews.module';
 
 
 @Module({
@@ -34,6 +35,7 @@ import { TicketsModule } from './modules/tickets/tickets.module';
     ClientsModule,
     WebsModule,
     TicketsModule,
+    TicketReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

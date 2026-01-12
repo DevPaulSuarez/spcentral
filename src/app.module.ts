@@ -7,6 +7,7 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClientsModule } from './modules/clients/clients.module';
 import { WebsModule } from './modules/webs/webs.module';
+import { TicketsModule } from './modules/tickets/tickets.module';
 
 
 @Module({
@@ -32,6 +33,7 @@ import { WebsModule } from './modules/webs/webs.module';
     AuthModule,
     ClientsModule,
     WebsModule,
+    TicketsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

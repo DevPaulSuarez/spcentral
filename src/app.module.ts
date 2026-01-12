@@ -9,6 +9,7 @@ import { ClientsModule } from './modules/clients/clients.module';
 import { WebsModule } from './modules/webs/webs.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { TicketReviewsModule } from './modules/ticket-reviews/ticket-reviews.module';
+import { TicketStatusHistoryModule } from './modules/ticket-status-history/ticket-status-history.module';
 
 
 @Module({
@@ -36,6 +37,7 @@ import { TicketReviewsModule } from './modules/ticket-reviews/ticket-reviews.mod
     WebsModule,
     TicketsModule,
     TicketReviewsModule,
+    TicketStatusHistoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

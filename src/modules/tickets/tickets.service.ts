@@ -4,6 +4,7 @@ import { Repository, IsNull } from 'typeorm';
 import { Ticket, TicketStatus } from './entities/ticket.entity';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
+import { FilterTicketDto } from './dto/filter-ticket.dto';
 import { UsersService } from '../users/users.service';
 import { UserRole } from '../users/entities/user.entity';
 import { TicketStatusHistoryService } from '../ticket-status-history/ticket-status-history.service';
@@ -26,11 +27,38 @@ export class TicketsService {
     return this.ticketsRepository.save(ticket);
   }
 
-  async findAll(): Promise<Ticket[]> {
-    return this.ticketsRepository.find({
-      where: { deleted_at: IsNull() },
+  async findAll(filterDto?: FilterTicketDto): Promise<{ data: Ticket[]; total: number; page: number; limit: number }> {
+    const page = filterDto?.page || 1;
+    const limit = filterDto?.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const where: any = { deleted_at: IsNull() };
+
+    if (filterDto?.status) {
+      where.status = filterDto.status;
+    }
+
+    if (filterDto?.priority) {
+      where.priority = filterDto.priority;
+    }
+
+    if (filterDto?.web_id) {
+      where.web_id = filterDto.web_id;
+    }
+
+    if (filterDto?.assigned_to) {
+      where.assigned_to = filterDto.assigned_to;
+    }
+
+    const [data, total] = await this.ticketsRepository.findAndCount({
+      where,
       relations: ['web', 'creator', 'assignee'],
+      skip,
+      take: limit,
+      order: { created_at: 'DESC' },
     });
+
+    return { data, total, page, limit };
   }
 
   async findOne(id: number): Promise<Ticket> {

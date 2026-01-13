@@ -9,10 +9,12 @@ import {
   ParseIntPipe,
   UseGuards,
   Request,
+  Query,
 } from '@nestjs/common';
 import { TicketsService } from './tickets.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
+import { FilterTicketDto } from './dto/filter-ticket.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -31,8 +33,8 @@ export class TicketsController {
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.DEV, UserRole.VALIDATOR)
-  findAll() {
-    return this.ticketsService.findAll();
+  findAll(@Query() filterDto: FilterTicketDto) {
+    return this.ticketsService.findAll(filterDto);
   }
 
   @Get(':id')

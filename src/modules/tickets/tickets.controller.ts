@@ -8,6 +8,7 @@ import {
   Delete,
   ParseIntPipe,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { TicketsService } from './tickets.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
@@ -63,8 +64,9 @@ export class TicketsController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateTicketDto: UpdateTicketDto,
+    @Request() req,
   ) {
-    return this.ticketsService.update(id, updateTicketDto);
+    return this.ticketsService.update(id, updateTicketDto, req.user.id);
   }
 
   @Delete(':id')

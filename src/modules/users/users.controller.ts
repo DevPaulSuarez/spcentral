@@ -7,34 +7,41 @@ import {
   Param,
   Delete,
   ParseIntPipe,
-   UseGuards,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from './entities/user.entity';
 
 @Controller('users')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
+  @Roles(UserRole.ADMIN)
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
   @Get()
+  @Roles(UserRole.ADMIN)
   findAll() {
     return this.usersService.findAll();
   }
 
   @Get(':id')
+  @Roles(UserRole.ADMIN)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.findOne(id);
   }
 
   @Patch(':id')
+  @Roles(UserRole.ADMIN)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
@@ -43,6 +50,7 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @Roles(UserRole.ADMIN)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.remove(id);
   }

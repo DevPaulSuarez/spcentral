@@ -58,7 +58,7 @@ export class TicketStatusHistoryController {
 
   @Delete(':id')
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Eliminar historial (solo ADMIN)' })
+  @ApiOperation({ summary: 'Eliminar historial (solo ADMIN )' })
   @ApiResponse({ status: 200, description: 'Historial eliminado' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.ticketStatusHistoryService.remove(id);

@@ -11,7 +11,7 @@ import {
   Request,
   Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { TicketsService } from './tickets.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
@@ -37,16 +37,13 @@ export class TicketsController {
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.DEV, UserRole.VALIDATOR)
+  @Roles(UserRole.ADMIN, UserRole.DEV, UserRole.VALIDATOR, UserRole.CLIENT)
   @ApiOperation({ summary: 'Listar tickets con filtros y paginación' })
-  @ApiQuery({ name: 'status', required: false, enum: ['OPEN', 'IN_PROGRESS', 'IN_REVIEW', 'RESOLVED', 'REJECTED'] })
-  @ApiQuery({ name: 'priority', required: false, enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] })
-  @ApiQuery({ name: 'web_id', required: false, type: Number })
-  @ApiQuery({ name: 'assigned_to', required: false, type: Number })
-  @ApiQuery({ name: 'page', required: false, type: Number })
-  @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiResponse({ status: 200, description: 'Lista de tickets paginada' })
-  findAll(@Query() filterDto: FilterTicketDto) {
+  findAll(@Query() filterDto: FilterTicketDto, @Request() req) {
+    if (req.user.role === UserRole.CLIENT) {
+      return this.ticketsService.findAllByUser(req.user.id, filterDto);
+    }
     return this.ticketsService.findAll(filterDto);
   }
 
@@ -54,7 +51,6 @@ export class TicketsController {
   @Roles(UserRole.ADMIN, UserRole.DEV, UserRole.VALIDATOR, UserRole.CLIENT)
   @ApiOperation({ summary: 'Obtener ticket por ID' })
   @ApiResponse({ status: 200, description: 'Ticket encontrado' })
-  @ApiResponse({ status: 404, description: 'Ticket no encontrado' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.ticketsService.findOne(id);
   }
@@ -62,7 +58,6 @@ export class TicketsController {
   @Get('web/:webId')
   @Roles(UserRole.ADMIN, UserRole.DEV, UserRole.CLIENT)
   @ApiOperation({ summary: 'Obtener tickets por web' })
-  @ApiResponse({ status: 200, description: 'Tickets de la web' })
   findByWeb(@Param('webId', ParseIntPipe) webId: number) {
     return this.ticketsService.findByWeb(webId);
   }
@@ -70,7 +65,6 @@ export class TicketsController {
   @Get('user/:userId')
   @Roles(UserRole.ADMIN, UserRole.CLIENT)
   @ApiOperation({ summary: 'Obtener tickets por usuario creador' })
-  @ApiResponse({ status: 200, description: 'Tickets del usuario' })
   findByUser(@Param('userId', ParseIntPipe) userId: number) {
     return this.ticketsService.findByUser(userId);
   }
@@ -78,7 +72,6 @@ export class TicketsController {
   @Get('assignee/:userId')
   @Roles(UserRole.ADMIN, UserRole.DEV)
   @ApiOperation({ summary: 'Obtener tickets asignados a un DEV' })
-  @ApiResponse({ status: 200, description: 'Tickets asignados' })
   findByAssignee(@Param('userId', ParseIntPipe) userId: number) {
     return this.ticketsService.findByAssignee(userId);
   }
@@ -86,7 +79,6 @@ export class TicketsController {
   @Patch(':id')
   @Roles(UserRole.ADMIN, UserRole.DEV)
   @ApiOperation({ summary: 'Actualizar ticket (ADMIN, DEV)' })
-  @ApiResponse({ status: 200, description: 'Ticket actualizado' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateTicketDto: UpdateTicketDto,
@@ -95,10 +87,45 @@ export class TicketsController {
     return this.ticketsService.update(id, updateTicketDto, req.user.id);
   }
 
+  @Patch(':id/start')
+  @Roles(UserRole.DEV)
+  @ApiOperation({ summary: 'Iniciar ticket (solo DEV asignado)' })
+  @ApiResponse({ status: 200, description: 'Ticket iniciado' })
+  startTicket(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    return this.ticketsService.startTicket(id, req.user.id);
+  }
+
+  @Patch(':id/finish')
+  @Roles(UserRole.DEV)
+  @ApiOperation({ summary: 'Finalizar ticket (solo DEV asignado)' })
+  @ApiResponse({ status: 200, description: 'Ticket enviado a revisión' })
+  finishTicket(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    return this.ticketsService.finishTicket(id, req.user.id);
+  }
+
+  @Patch(':id/approve')
+  @Roles(UserRole.ADMIN, UserRole.VALIDATOR)
+  @ApiOperation({ summary: 'Aprobar ticket (ADMIN, VALIDATOR)' })
+  @ApiResponse({ status: 200, description: 'Ticket aprobado' })
+  approveTicket(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    return this.ticketsService.approveTicket(id, req.user.id);
+  }
+
+  @Patch(':id/reject')
+  @Roles(UserRole.ADMIN, UserRole.VALIDATOR)
+  @ApiOperation({ summary: 'Rechazar ticket (ADMIN, VALIDATOR)' })
+  @ApiResponse({ status: 200, description: 'Ticket rechazado' })
+  rejectTicket(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('reason') reason: string,
+    @Request() req,
+  ) {
+    return this.ticketsService.rejectTicket(id, req.user.id, reason);
+  }
+
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Eliminar ticket (solo ADMIN)' })
-  @ApiResponse({ status: 200, description: 'Ticket eliminado' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.ticketsService.remove(id);
   }

@@ -62,6 +62,14 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
+  async resetPassword(id: number, password: string): Promise<{ message: string }> {
+    const user = await this.findOne(id);
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user.password_hash = hashedPassword;
+    await this.usersRepository.save(user);
+    return { message: 'Password updated successfully' };
+  }
+
   async remove(id: number): Promise<void> {
     const user = await this.findOne(id);
     user.deleted_at = new Date();

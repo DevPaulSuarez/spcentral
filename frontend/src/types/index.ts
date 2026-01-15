@@ -30,6 +30,12 @@ export enum ReviewStatus {
   CHANGES_REQUESTED = 'CHANGES_REQUESTED',
 }
 
+export enum WorkLogStatus {
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  REJECTED = 'REJECTED',
+}
+
 export interface User {
   id: number;
   name: string;
@@ -86,6 +92,18 @@ export interface TicketReview {
   created_at: string;
   ticket?: Ticket;
   reviewer?: User;
+}
+
+export interface TicketWorkLog {
+  id: number;
+  ticket_id: number;
+  dev_id: number;
+  started_at: string;
+  finished_at?: string;
+  status: WorkLogStatus;
+  rejection_reason?: string;
+  created_at: string;
+  dev?: User;
 }
 
 export interface AuthResponse {

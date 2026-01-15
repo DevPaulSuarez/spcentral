@@ -8,6 +8,7 @@ import {
   Delete,
   ParseIntPipe,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { WebsService } from './webs.service';
@@ -29,16 +30,18 @@ export class WebsController {
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Crear web (solo ADMIN)' })
   @ApiResponse({ status: 201, description: 'Web creada' })
-  @ApiResponse({ status: 403, description: 'Sin permisos' })
   create(@Body() createWebDto: CreateWebDto) {
     return this.websService.create(createWebDto);
   }
 
   @Get()
-  @Roles(UserRole.ADMIN, UserRole.DEV)
-  @ApiOperation({ summary: 'Listar webs (ADMIN, DEV)' })
+  @Roles(UserRole.ADMIN, UserRole.DEV, UserRole.CLIENT)
+  @ApiOperation({ summary: 'Listar webs' })
   @ApiResponse({ status: 200, description: 'Lista de webs' })
-  findAll() {
+  findAll(@Request() req) {
+    if (req.user.role === UserRole.CLIENT) {
+      return this.websService.findByUser(req.user.id);
+    }
     return this.websService.findAll();
   }
 
@@ -46,7 +49,6 @@ export class WebsController {
   @Roles(UserRole.ADMIN, UserRole.DEV, UserRole.CLIENT)
   @ApiOperation({ summary: 'Obtener web por ID' })
   @ApiResponse({ status: 200, description: 'Web encontrada' })
-  @ApiResponse({ status: 404, description: 'Web no encontrada' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.websService.findOne(id);
   }

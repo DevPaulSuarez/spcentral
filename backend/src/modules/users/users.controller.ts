@@ -62,6 +62,17 @@ export class UsersController {
     return this.usersService.update(id, updateUserDto);
   }
 
+  @Patch(':id/reset-password')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Cambiar contraseña de usuario (solo ADMIN)' })
+  @ApiResponse({ status: 200, description: 'Contraseña actualizada' })
+  resetPassword(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('password') password: string,
+  ) {
+    return this.usersService.resetPassword(id, password);
+  }
+
   @Delete(':id')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Eliminar usuario (solo ADMIN)' })

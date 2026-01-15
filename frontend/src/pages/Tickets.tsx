@@ -22,7 +22,13 @@ export default function Tickets() {
       if (priorityFilter) params.append('priority', priorityFilter);
 
       const response = await api.get(`/tickets?${params.toString()}`);
-      setTickets(response.data.data);
+      
+      // Manejar ambos formatos: array o { data: array }
+      if (Array.isArray(response.data)) {
+        setTickets(response.data);
+      } else {
+        setTickets(response.data.data || []);
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al cargar tickets');
     } finally {

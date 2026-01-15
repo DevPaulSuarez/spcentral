@@ -8,7 +8,9 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [editing, setEditing] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -16,6 +18,7 @@ export default function Users() {
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<UserRole>(UserRole.CLIENT);
   const [language, setLanguage] = useState<Language>(Language.ES);
+  const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
     fetchUsers();
@@ -59,6 +62,19 @@ export default function Users() {
     setError('');
   };
 
+  const openPasswordModal = (user: User) => {
+    setSelectedUser(user);
+    setNewPassword('');
+    setShowPasswordModal(true);
+  };
+
+  const closePasswordModal = () => {
+    setShowPasswordModal(false);
+    setSelectedUser(null);
+    setNewPassword('');
+    setError('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -86,6 +102,26 @@ export default function Users() {
       fetchUsers();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al guardar usuario');
+    }
+  };
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (newPassword.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+
+    try {
+      await api.patch(`/users/${selectedUser?.id}/reset-password`, {
+        password: newPassword,
+      });
+      closePasswordModal();
+      alert('Contraseña actualizada correctamente');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al cambiar contraseña');
     }
   };
 
@@ -158,9 +194,15 @@ export default function Users() {
                   <td className="px-6 py-4">
                     <button
                       onClick={() => openModal(user)}
-                      className="text-blue-500 hover:underline mr-4"
+                      className="text-blue-500 hover:underline mr-3"
                     >
                       Editar
+                    </button>
+                    <button
+                      onClick={() => openPasswordModal(user)}
+                      className="text-yellow-600 hover:underline mr-3"
+                    >
+                      Contraseña
                     </button>
                     <button
                       onClick={() => handleDelete(user.id)}
@@ -271,6 +313,52 @@ export default function Users() {
                 <button
                   type="button"
                   onClick={closeModal}
+                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md">
+            <h3 className="text-xl font-bold mb-4">
+              Cambiar Contraseña - {selectedUser?.name}
+            </h3>
+
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handlePasswordReset}>
+              <div className="mb-6">
+                <label className="block text-gray-700 mb-2">Nueva Contraseña</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  minLength={6}
+                  required
+                />
+              </div>
+
+              <div className="flex gap-4">
+                <button
+                  type="submit"
+                  className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+                >
+                  Cambiar Contraseña
+                </button>
+                <button
+                  type="button"
+                  onClick={closePasswordModal}
                   className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
                 >
                   Cancelar

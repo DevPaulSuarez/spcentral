@@ -5,12 +5,14 @@ import { TicketsController } from './tickets.controller';
 import { Ticket } from './entities/ticket.entity';
 import { UsersModule } from '../users/users.module';
 import { TicketStatusHistoryModule } from '../ticket-status-history/ticket-status-history.module';
+import { TicketWorkLogsModule } from '../ticket-work-logs/ticket-work-logs.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Ticket]),
     UsersModule,
     TicketStatusHistoryModule,
+    TicketWorkLogsModule,
   ],
   controllers: [TicketsController],
   providers: [TicketsService],

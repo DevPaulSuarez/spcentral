@@ -10,6 +10,7 @@ import { WebsModule } from './modules/webs/webs.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { TicketReviewsModule } from './modules/ticket-reviews/ticket-reviews.module';
 import { TicketStatusHistoryModule } from './modules/ticket-status-history/ticket-status-history.module';
+import { TicketWorkLogsModule } from './modules/ticket-work-logs/ticket-work-logs.module';
 
 
 @Module({
@@ -38,6 +39,7 @@ import { TicketStatusHistoryModule } from './modules/ticket-status-history/ticke
     TicketsModule,
     TicketReviewsModule,
     TicketStatusHistoryModule,
+    TicketWorkLogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

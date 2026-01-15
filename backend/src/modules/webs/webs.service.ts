@@ -43,6 +43,16 @@ export class WebsService {
     });
   }
 
+  async findByUser(userId: number): Promise<Web[]> {
+    return this.websRepository.find({
+      where: { 
+        client: { user_id: userId },
+        deleted_at: IsNull() 
+      },
+      relations: ['client'],
+    });
+  }
+
   async update(id: number, updateWebDto: UpdateWebDto): Promise<Web> {
     const web = await this.findOne(id);
     Object.assign(web, updateWebDto);

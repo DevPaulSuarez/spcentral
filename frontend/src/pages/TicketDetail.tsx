@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
-import { Ticket, TicketStatus, TicketPriority, User, UserRole } from '../types';
+import { Ticket, TicketStatus, TicketPriority, User, UserRole, TicketWorkLog, WorkLogStatus } from '../types';
 import { useAuth } from '../context/AuthContext';
 
 export default function TicketDetail() {
@@ -12,17 +12,29 @@ export default function TicketDetail() {
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [devs, setDevs] = useState<User[]>([]);
+  const [workLogs, setWorkLogs] = useState<TicketWorkLog[]>([]);
+  const [totalTime, setTotalTime] = useState<{ totalMinutes: number; attempts: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [showRejectModal, setShowRejectModal] = useState(false);
 
   const [status, setStatus] = useState<TicketStatus>(TicketStatus.OPEN);
   const [priority, setPriority] = useState<TicketPriority>(TicketPriority.MEDIUM);
   const [assignedTo, setAssignedTo] = useState<string>('');
 
+  const canEdit = user?.role === 'ADMIN';
+  const isDev = user?.role === 'DEV';
+  const isValidator = user?.role === 'VALIDATOR' || user?.role === 'ADMIN';
+  const isAssignedDev = isDev && ticket?.assigned_to === user?.id;
+
   useEffect(() => {
     fetchTicket();
-    fetchDevs();
+    fetchWorkLogs();
+    if (user?.role === 'ADMIN') {
+      fetchDevs();
+    }
   }, [id]);
 
   const fetchTicket = async () => {
@@ -49,6 +61,19 @@ export default function TicketDetail() {
     }
   };
 
+  const fetchWorkLogs = async () => {
+    try {
+      const [logsResponse, timeResponse] = await Promise.all([
+        api.get(`/ticket-work-logs/ticket/${id}`),
+        api.get(`/ticket-work-logs/ticket/${id}/total-time`),
+      ]);
+      setWorkLogs(logsResponse.data);
+      setTotalTime(timeResponse.data);
+    } catch (err) {
+      console.error('Error al cargar work logs', err);
+    }
+  };
+
   const handleUpdate = async () => {
     try {
       await api.patch(`/tickets/${id}`, {
@@ -60,6 +85,51 @@ export default function TicketDetail() {
       fetchTicket();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al actualizar ticket');
+    }
+  };
+
+  const handleStart = async () => {
+    try {
+      await api.patch(`/tickets/${id}/start`);
+      fetchTicket();
+      fetchWorkLogs();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al iniciar ticket');
+    }
+  };
+
+  const handleFinish = async () => {
+    try {
+      await api.patch(`/tickets/${id}/finish`);
+      fetchTicket();
+      fetchWorkLogs();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al finalizar ticket');
+    }
+  };
+
+  const handleApprove = async () => {
+    try {
+      await api.patch(`/tickets/${id}/approve`);
+      fetchTicket();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al aprobar ticket');
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectReason.trim()) {
+      setError('Debe indicar el motivo del rechazo');
+      return;
+    }
+    try {
+      await api.patch(`/tickets/${id}/reject`, { reason: rejectReason });
+      setShowRejectModal(false);
+      setRejectReason('');
+      fetchTicket();
+      fetchWorkLogs();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al rechazar ticket');
     }
   };
 
@@ -82,6 +152,29 @@ export default function TicketDetail() {
       CRITICAL: 'bg-red-100 text-red-800',
     };
     return colors[priority];
+  };
+
+  const getWorkLogStatusColor = (status: WorkLogStatus) => {
+    const colors = {
+      IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
+      COMPLETED: 'bg-green-100 text-green-800',
+      REJECTED: 'bg-red-100 text-red-800',
+    };
+    return colors[status];
+  };
+
+  const formatTime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
+  };
+
+  const calculateLogTime = (log: TicketWorkLog) => {
+    if (!log.started_at || !log.finished_at) return '-';
+    const start = new Date(log.started_at).getTime();
+    const end = new Date(log.finished_at).getTime();
+    const minutes = Math.floor((end - start) / (1000 * 60));
+    return formatTime(minutes);
   };
 
   if (loading) {
@@ -111,7 +204,7 @@ export default function TicketDetail() {
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
           <div className="mb-6">
             <h3 className="text-xl font-semibold mb-2">{ticket.title}</h3>
             <p className="text-gray-600">{ticket.description}</p>
@@ -120,7 +213,7 @@ export default function TicketDetail() {
           <div className="grid grid-cols-2 gap-6 mb-6">
             <div>
               <p className="text-gray-500 text-sm">Estado</p>
-              {editing ? (
+              {editing && canEdit ? (
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as TicketStatus)}
@@ -141,7 +234,7 @@ export default function TicketDetail() {
 
             <div>
               <p className="text-gray-500 text-sm">Prioridad</p>
-              {editing ? (
+              {editing && canEdit ? (
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value as TicketPriority)}
@@ -161,7 +254,7 @@ export default function TicketDetail() {
 
             <div>
               <p className="text-gray-500 text-sm">Asignado a</p>
-              {editing ? (
+              {editing && canEdit ? (
                 <select
                   value={assignedTo}
                   onChange={(e) => setAssignedTo(e.target.value)}
@@ -193,36 +286,159 @@ export default function TicketDetail() {
               <p className="text-gray-500 text-sm">Fecha creación</p>
               <p className="font-medium">{new Date(ticket.created_at).toLocaleString()}</p>
             </div>
+
+            {totalTime && totalTime.attempts > 0 && (
+              <>
+                <div>
+                  <p className="text-gray-500 text-sm">Tiempo total</p>
+                  <p className="font-medium text-blue-600">{formatTime(totalTime.totalMinutes)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-sm">Intentos</p>
+                  <p className="font-medium">{totalTime.attempts}</p>
+                </div>
+              </>
+            )}
           </div>
 
-          {(user?.role === 'ADMIN' || user?.role === 'DEV') && (
-            <div className="flex gap-4">
-              {editing ? (
-                <>
-                  <button
-                    onClick={handleUpdate}
-                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                  >
-                    Guardar
-                  </button>
-                  <button
-                    onClick={() => setEditing(false)}
-                    className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
-                  >
-                    Cancelar
-                  </button>
-                </>
-              ) : (
+          <div className="flex gap-4 flex-wrap">
+            {isAssignedDev && (ticket.status === 'OPEN' || ticket.status === 'REJECTED') && (
+              <button
+                onClick={handleStart}
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+              >
+                Iniciar Ticket
+              </button>
+            )}
+
+            {isAssignedDev && ticket.status === 'IN_PROGRESS' && (
+              <button
+                onClick={handleFinish}
+                className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
+              >
+                Enviar a Revisión
+              </button>
+            )}
+
+            {isValidator && ticket.status === 'IN_REVIEW' && (
+              <>
                 <button
-                  onClick={() => setEditing(true)}
-                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                  onClick={handleApprove}
+                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
                 >
-                  Editar
+                  Aprobar
                 </button>
-              )}
-            </div>
-          )}
+                <button
+                  onClick={() => setShowRejectModal(true)}
+                  className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                >
+                  Rechazar
+                </button>
+              </>
+            )}
+
+            {canEdit && (
+              <>
+                {editing ? (
+                  <>
+                    <button
+                      onClick={handleUpdate}
+                      className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                    >
+                      Guardar
+                    </button>
+                    <button
+                      onClick={() => setEditing(false)}
+                      className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+                    >
+                      Cancelar
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                  >
+                    Editar
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
+
+        {workLogs.length > 0 && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold mb-4">Historial de Trabajo</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Dev</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Inicio</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fin</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tiempo</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Motivo Rechazo</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {workLogs.map((log, index) => (
+                    <tr key={log.id}>
+                      <td className="px-4 py-2">{index + 1}</td>
+                      <td className="px-4 py-2">{log.dev?.name}</td>
+                      <td className="px-4 py-2">{new Date(log.started_at).toLocaleString()}</td>
+                      <td className="px-4 py-2">{log.finished_at ? new Date(log.finished_at).toLocaleString() : '-'}</td>
+                      <td className="px-4 py-2">{calculateLogTime(log)}</td>
+                      <td className="px-4 py-2">
+                        <span className={`px-2 py-1 rounded text-xs ${getWorkLogStatusColor(log.status)}`}>
+                          {log.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-red-600">{log.rejection_reason || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {showRejectModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div className="bg-white p-6 rounded-lg w-full max-w-md">
+              <h3 className="text-xl font-bold mb-4">Rechazar Ticket</h3>
+              <div className="mb-4">
+                <label className="block text-gray-700 mb-2">Motivo del rechazo</label>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  rows={4}
+                  required
+                />
+              </div>
+              <div className="flex gap-4">
+                <button
+                  onClick={handleReject}
+                  className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                >
+                  Rechazar
+                </button>
+                <button
+                  onClick={() => {
+                    setShowRejectModal(false);
+                    setRejectReason('');
+                  }}
+                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

@@ -238,8 +238,6 @@ const handleUpdate = async () => {
                   className="border rounded px-3 py-1"
                 >
                   <option value="OPEN">Abierto</option>
-                  <option value="IN_PROGRESS">En Progreso</option>
-                  <option value="IN_REVIEW">En Revisión</option>
                   <option value="RESOLVED">Resuelto</option>
                   <option value="REJECTED">Rechazado</option>
                 </select>

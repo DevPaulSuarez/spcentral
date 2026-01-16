@@ -175,7 +175,7 @@ export class TicketsService {
     });
   }
 
-  async update(id: number, updateTicketDto: UpdateTicketDto, changedBy: number): Promise<Ticket> {
+async update(id: number, updateTicketDto: UpdateTicketDto, changedBy: number): Promise<Ticket> {
   const ticket = await this.findOne(id);
 
   if (updateTicketDto.assigned_to) {
@@ -184,6 +184,14 @@ export class TicketsService {
 
   if (updateTicketDto.validator_id) {
     await this.validateValidator(updateTicketDto.validator_id);
+  }
+
+  // Validar que ADMIN no pueda asignar IN_PROGRESS o IN_REVIEW directamente
+  if (updateTicketDto.status) {
+    const restrictedStatuses = [TicketStatus.IN_PROGRESS, TicketStatus.IN_REVIEW];
+    if (restrictedStatuses.includes(updateTicketDto.status)) {
+      throw new BadRequestException('Los estados en Progreso o en Revisión solo pueden ser asignados por el DEV');
+    }
   }
 
   if (updateTicketDto.status && updateTicketDto.status !== ticket.status) {

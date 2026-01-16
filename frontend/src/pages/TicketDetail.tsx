@@ -12,6 +12,7 @@ export default function TicketDetail() {
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [devs, setDevs] = useState<User[]>([]);
+  const [validators, setValidators] = useState<User[]>([]);
   const [workLogs, setWorkLogs] = useState<TicketWorkLog[]>([]);
   const [totalTime, setTotalTime] = useState<{ totalMinutes: number; attempts: number } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,33 +24,39 @@ export default function TicketDetail() {
   const [status, setStatus] = useState<TicketStatus>(TicketStatus.OPEN);
   const [priority, setPriority] = useState<TicketPriority>(TicketPriority.MEDIUM);
   const [assignedTo, setAssignedTo] = useState<string>('');
+  const [validatorId, setValidatorId] = useState<string>('');
 
   const canEdit = user?.role === 'ADMIN';
   const isDev = user?.role === 'DEV';
-  const isValidator = user?.role === 'VALIDATOR' || user?.role === 'ADMIN';
+  const isValidator = user?.role === 'VALIDATOR';
   const isAssignedDev = isDev && ticket?.assigned_to === user?.id;
+  const isAssignedValidator = isValidator && ticket?.validator_id === user?.id;
+  const canValidate = user?.role === 'ADMIN' || isAssignedValidator;
 
   useEffect(() => {
     fetchTicket();
     fetchWorkLogs();
     if (user?.role === 'ADMIN') {
       fetchDevs();
+      fetchValidators();
     }
   }, [id]);
 
-  const fetchTicket = async () => {
-    try {
-      const response = await api.get(`/tickets/${id}`);
-      setTicket(response.data);
-      setStatus(response.data.status);
-      setPriority(response.data.priority);
-      setAssignedTo(response.data.assigned_to?.toString() || '');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al cargar ticket');
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchTicket = async () => {
+  try {
+    const response = await api.get(`/tickets/${id}`);
+    const data = response.data;
+    setTicket(data);
+    setStatus(data.status);
+    setPriority(data.priority);
+    setAssignedTo(data.assigned_to?.toString() || '');
+    setValidatorId(data.validator_id?.toString() || '');
+  } catch (err: any) {
+    setError(err.response?.data?.message || 'Error al cargar ticket');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const fetchDevs = async () => {
     try {
@@ -58,6 +65,16 @@ export default function TicketDetail() {
       setDevs(devUsers);
     } catch (err) {
       console.error('Error al cargar devs', err);
+    }
+  };
+
+  const fetchValidators = async () => {
+    try {
+      const response = await api.get('/users');
+      const validatorUsers = response.data.filter((u: User) => u.role === UserRole.VALIDATOR);
+      setValidators(validatorUsers);
+    } catch (err) {
+      console.error('Error al cargar validators', err);
     }
   };
 
@@ -74,19 +91,20 @@ export default function TicketDetail() {
     }
   };
 
-  const handleUpdate = async () => {
-    try {
-      await api.patch(`/tickets/${id}`, {
-        status,
-        priority,
-        assigned_to: assignedTo ? Number(assignedTo) : null,
-      });
-      setEditing(false);
-      fetchTicket();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al actualizar ticket');
-    }
-  };
+const handleUpdate = async () => {
+  try {
+    await api.patch(`/tickets/${id}`, {
+      status,
+      priority,
+      assigned_to: assignedTo ? Number(assignedTo) : null,
+      validator_id: validatorId ? Number(validatorId) : null,
+    });
+    setEditing(false);
+    await fetchTicket();
+  } catch (err: any) {
+    setError(err.response?.data?.message || 'Error al actualizar ticket');
+  }
+};
 
   const handleStart = async () => {
     try {
@@ -253,7 +271,7 @@ export default function TicketDetail() {
             </div>
 
             <div>
-              <p className="text-gray-500 text-sm">Asignado a</p>
+              <p className="text-gray-500 text-sm">Asignado a (DEV)</p>
               {editing && canEdit ? (
                 <select
                   value={assignedTo}
@@ -269,6 +287,26 @@ export default function TicketDetail() {
                 </select>
               ) : (
                 <p className="font-medium">{ticket.assignee?.name || 'Sin asignar'}</p>
+              )}
+            </div>
+
+            <div>
+              <p className="text-gray-500 text-sm">Validador</p>
+              {editing && canEdit ? (
+                <select
+                  value={validatorId}
+                  onChange={(e) => setValidatorId(e.target.value)}
+                  className="border rounded px-3 py-1"
+                >
+                  <option value="">Sin asignar</option>
+                  {validators.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="font-medium">{ticket.validator?.name || 'Sin asignar'}</p>
               )}
             </div>
 
@@ -320,7 +358,7 @@ export default function TicketDetail() {
               </button>
             )}
 
-            {isValidator && ticket.status === 'IN_REVIEW' && (
+            {canValidate && ticket.status === 'IN_REVIEW' && (
               <>
                 <button
                   onClick={handleApprove}

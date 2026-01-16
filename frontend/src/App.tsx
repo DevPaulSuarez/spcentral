@@ -39,6 +39,24 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return children;
 }
 
+function TicketCreatorRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, loading, user } = useAuth();
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+
+  if (user?.role !== 'ADMIN' && user?.role !== 'CLIENT') {
+    return <Navigate to="/tickets" />;
+  }
+
+  return children;
+}
+
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
 
@@ -56,7 +74,7 @@ function AppRoutes() {
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
       <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
       <Route path="/tickets" element={<PrivateRoute><Layout><Tickets /></Layout></PrivateRoute>} />
-      <Route path="/tickets/new" element={<PrivateRoute><TicketNew /></PrivateRoute>} />
+      <Route path="/tickets/new" element={<TicketCreatorRoute><TicketNew /></TicketCreatorRoute>} />
       <Route path="/tickets/:id" element={<PrivateRoute><TicketDetail /></PrivateRoute>} />
       <Route path="/users" element={<AdminRoute><Users /></AdminRoute>} />
       <Route path="/clients" element={<AdminRoute><Clients /></AdminRoute>} />

@@ -1,4 +1,4 @@
-import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsNumber } from 'class-validator';
 import { TicketStatus, TicketPriority } from '../entities/ticket.entity';
 
 export class UpdateTicketDto {
@@ -21,4 +21,8 @@ export class UpdateTicketDto {
   @IsOptional()
   @IsNumber()
   assigned_to?: number;
+
+  @IsOptional()
+  @IsNumber()
+  validator_id?: number;
 }

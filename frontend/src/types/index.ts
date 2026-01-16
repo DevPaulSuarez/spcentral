@@ -76,11 +76,13 @@ export interface Ticket {
   web_id: number;
   created_by: number;
   assigned_to?: number;
+  validator_id?: number;
   created_at: string;
   updated_at: string;
   web?: Web;
   creator?: User;
   assignee?: User;
+  validator?: User;
 }
 
 export interface TicketReview {

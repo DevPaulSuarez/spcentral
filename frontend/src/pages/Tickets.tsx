@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { Ticket, TicketStatus, TicketPriority } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 export default function Tickets() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -9,6 +10,9 @@ export default function Tickets() {
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
+
+  const { user } = useAuth();
+  const canCreateTicket = user?.role === 'ADMIN' || user?.role === 'CLIENT';
 
   useEffect(() => {
     fetchTickets();
@@ -23,7 +27,6 @@ export default function Tickets() {
 
       const response = await api.get(`/tickets?${params.toString()}`);
       
-      // Manejar ambos formatos: array o { data: array }
       if (Array.isArray(response.data)) {
         setTickets(response.data);
       } else {
@@ -61,12 +64,14 @@ export default function Tickets() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Tickets</h2>
-        <Link
-          to="/tickets/new"
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          Nuevo Ticket
-        </Link>
+        {canCreateTicket && (
+          <Link
+            to="/tickets/new"
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Nuevo Ticket
+          </Link>
+        )}
       </div>
 
       <div className="flex gap-4 mb-6">

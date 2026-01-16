@@ -54,7 +54,7 @@ export class TicketsService {
 
     const [data, total] = await this.ticketsRepository.findAndCount({
       where,
-      relations: ['web', 'creator', 'assignee'],
+      relations: ['web', 'creator', 'assignee', 'validator'],
       skip,
       take: limit,
       order: { created_at: 'DESC' },
@@ -80,7 +80,59 @@ export class TicketsService {
 
     const [data, total] = await this.ticketsRepository.findAndCount({
       where,
-      relations: ['web', 'creator', 'assignee'],
+      relations: ['web', 'creator', 'assignee', 'validator'],
+      skip,
+      take: limit,
+      order: { created_at: 'DESC' },
+    });
+
+    return { data, total, page, limit };
+  }
+
+  async findAllByAssignee(userId: number, filterDto?: FilterTicketDto): Promise<{ data: Ticket[]; total: number; page: number; limit: number }> {
+    const page = filterDto?.page || 1;
+    const limit = filterDto?.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const where: any = { assigned_to: userId, deleted_at: IsNull() };
+
+    if (filterDto?.status) {
+      where.status = filterDto.status;
+    }
+
+    if (filterDto?.priority) {
+      where.priority = filterDto.priority;
+    }
+
+    const [data, total] = await this.ticketsRepository.findAndCount({
+      where,
+      relations: ['web', 'creator', 'assignee', 'validator'],
+      skip,
+      take: limit,
+      order: { created_at: 'DESC' },
+    });
+
+    return { data, total, page, limit };
+  }
+
+  async findAllByValidator(userId: number, filterDto?: FilterTicketDto): Promise<{ data: Ticket[]; total: number; page: number; limit: number }> {
+    const page = filterDto?.page || 1;
+    const limit = filterDto?.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const where: any = { validator_id: userId, deleted_at: IsNull() };
+
+    if (filterDto?.status) {
+      where.status = filterDto.status;
+    }
+
+    if (filterDto?.priority) {
+      where.priority = filterDto.priority;
+    }
+
+    const [data, total] = await this.ticketsRepository.findAndCount({
+      where,
+      relations: ['web', 'creator', 'assignee', 'validator'],
       skip,
       take: limit,
       order: { created_at: 'DESC' },
@@ -92,7 +144,7 @@ export class TicketsService {
   async findOne(id: number): Promise<Ticket> {
     const ticket = await this.ticketsRepository.findOne({
       where: { id, deleted_at: IsNull() },
-      relations: ['web', 'creator', 'assignee'],
+      relations: ['web', 'creator', 'assignee', 'validator'],
     });
 
     if (!ticket) {
@@ -105,44 +157,66 @@ export class TicketsService {
   async findByWeb(webId: number): Promise<Ticket[]> {
     return this.ticketsRepository.find({
       where: { web_id: webId, deleted_at: IsNull() },
-      relations: ['creator', 'assignee'],
+      relations: ['creator', 'assignee', 'validator'],
     });
   }
 
   async findByUser(userId: number): Promise<Ticket[]> {
     return this.ticketsRepository.find({
       where: { created_by: userId, deleted_at: IsNull() },
-      relations: ['web', 'assignee'],
+      relations: ['web', 'assignee', 'validator'],
     });
   }
 
   async findByAssignee(userId: number): Promise<Ticket[]> {
     return this.ticketsRepository.find({
       where: { assigned_to: userId, deleted_at: IsNull() },
-      relations: ['web', 'creator'],
+      relations: ['web', 'creator', 'validator'],
     });
   }
 
   async update(id: number, updateTicketDto: UpdateTicketDto, changedBy: number): Promise<Ticket> {
-    const ticket = await this.findOne(id);
+  const ticket = await this.findOne(id);
 
-    if (updateTicketDto.assigned_to) {
-      await this.validateAssignee(updateTicketDto.assigned_to);
-    }
-
-    if (updateTicketDto.status && updateTicketDto.status !== ticket.status) {
-      await this.ticketStatusHistoryService.create({
-        ticket_id: id,
-        old_status: ticket.status,
-        new_status: updateTicketDto.status,
-        changed_by: changedBy,
-      });
-    }
-
-    Object.assign(ticket, updateTicketDto);
-    return this.ticketsRepository.save(ticket);
+  if (updateTicketDto.assigned_to) {
+    await this.validateAssignee(updateTicketDto.assigned_to);
   }
 
+  if (updateTicketDto.validator_id) {
+    await this.validateValidator(updateTicketDto.validator_id);
+  }
+
+  if (updateTicketDto.status && updateTicketDto.status !== ticket.status) {
+    await this.ticketStatusHistoryService.create({
+      ticket_id: id,
+      old_status: ticket.status,
+      new_status: updateTicketDto.status,
+      changed_by: changedBy,
+    });
+  }
+
+  // Usar update directamente en la base de datos
+  await this.ticketsRepository.update(id, {
+    title: updateTicketDto.title ?? ticket.title,
+    description: updateTicketDto.description ?? ticket.description,
+    status: updateTicketDto.status ?? ticket.status,
+    priority: updateTicketDto.priority ?? ticket.priority,
+    assigned_to: updateTicketDto.assigned_to !== undefined ? updateTicketDto.assigned_to : ticket.assigned_to,
+    validator_id: updateTicketDto.validator_id !== undefined ? updateTicketDto.validator_id : ticket.validator_id,
+  });
+
+  // Buscar de nuevo con relaciones
+  const updatedTicket = await this.ticketsRepository.findOne({
+    where: { id },
+    relations: ['web', 'creator', 'assignee', 'validator'],
+  });
+
+  if (!updatedTicket) {
+    throw new NotFoundException('Ticket not found');
+  }
+
+  return updatedTicket;
+}
   async startTicket(id: number, userId: number): Promise<Ticket> {
     const ticket = await this.findOne(id);
 
@@ -200,6 +274,10 @@ export class TicketsService {
       throw new BadRequestException('Solo se pueden rechazar tickets en estado IN_REVIEW');
     }
 
+    if (ticket.validator_id && ticket.validator_id !== userId) {
+      throw new BadRequestException('Solo el validador asignado puede rechazar este ticket');
+    }
+
     await this.ticketStatusHistoryService.create({
       ticket_id: id,
       old_status: ticket.status,
@@ -219,6 +297,10 @@ export class TicketsService {
 
     if (ticket.status !== TicketStatus.IN_REVIEW) {
       throw new BadRequestException('Solo se pueden aprobar tickets en estado IN_REVIEW');
+    }
+
+    if (ticket.validator_id && ticket.validator_id !== userId) {
+      throw new BadRequestException('Solo el validador asignado puede aprobar este ticket');
     }
 
     await this.ticketStatusHistoryService.create({
@@ -244,6 +326,14 @@ export class TicketsService {
     
     if (user.role !== UserRole.DEV) {
       throw new BadRequestException('Tickets can only be assigned to DEV users');
+    }
+  }
+
+  private async validateValidator(userId: number): Promise<void> {
+    const user = await this.usersService.findOne(userId);
+    
+    if (user.role !== UserRole.VALIDATOR) {
+      throw new BadRequestException('Tickets can only be validated by VALIDATOR users');
     }
   }
 }

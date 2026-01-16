@@ -51,6 +51,9 @@ export class Ticket {
   @Column({ nullable: true })
   assigned_to: number;
 
+  @Column({ nullable: true })
+  validator_id: number;
+
   @CreateDateColumn()
   created_at: Date;
 
@@ -71,4 +74,8 @@ export class Ticket {
   @ManyToOne(() => User)
   @JoinColumn({ name: 'assigned_to' })
   assignee: User;
+
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'validator_id' })
+  validator: User;
 }

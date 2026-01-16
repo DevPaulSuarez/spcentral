@@ -44,6 +44,12 @@ export class TicketsController {
     if (req.user.role === UserRole.CLIENT) {
       return this.ticketsService.findAllByUser(req.user.id, filterDto);
     }
+    if (req.user.role === UserRole.DEV) {
+      return this.ticketsService.findAllByAssignee(req.user.id, filterDto);
+    }
+    if (req.user.role === UserRole.VALIDATOR) {
+      return this.ticketsService.findAllByValidator(req.user.id, filterDto);
+    }
     return this.ticketsService.findAll(filterDto);
   }
 
@@ -77,8 +83,8 @@ export class TicketsController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.ADMIN, UserRole.DEV)
-  @ApiOperation({ summary: 'Actualizar ticket (ADMIN, DEV)' })
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Actualizar ticket (ADMIN)' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateTicketDto: UpdateTicketDto,
@@ -105,7 +111,7 @@ export class TicketsController {
 
   @Patch(':id/approve')
   @Roles(UserRole.ADMIN, UserRole.VALIDATOR)
-  @ApiOperation({ summary: 'Aprobar ticket (ADMIN, VALIDATOR)' })
+  @ApiOperation({ summary: 'Aprobar ticket (ADMIN, VALIDATOR asignado)' })
   @ApiResponse({ status: 200, description: 'Ticket aprobado' })
   approveTicket(@Param('id', ParseIntPipe) id: number, @Request() req) {
     return this.ticketsService.approveTicket(id, req.user.id);
@@ -113,7 +119,7 @@ export class TicketsController {
 
   @Patch(':id/reject')
   @Roles(UserRole.ADMIN, UserRole.VALIDATOR)
-  @ApiOperation({ summary: 'Rechazar ticket (ADMIN, VALIDATOR)' })
+  @ApiOperation({ summary: 'Rechazar ticket (ADMIN, VALIDATOR asignado)' })
   @ApiResponse({ status: 200, description: 'Ticket rechazado' })
   rejectTicket(
     @Param('id', ParseIntPipe) id: number,

@@ -11,6 +11,7 @@ export default function TicketNew() {
   const [priority, setPriority] = useState<TicketPriority>(TicketPriority.MEDIUM);
   const [webId, setWebId] = useState('');
   const [webs, setWebs] = useState<Web[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -30,19 +31,52 @@ export default function TicketNew() {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = e.target.files;
+    if (selectedFiles) {
+      setFiles([...files, ...Array.from(selectedFiles)]);
+    }
+    e.target.value = '';
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(files.filter((_, i) => i !== index));
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      await api.post('/tickets', {
+      // Crear el ticket
+      const ticketResponse = await api.post('/tickets', {
         title,
         description,
         priority,
         web_id: Number(webId),
         created_by: user?.id,
       });
+
+      const ticketId = ticketResponse.data.id;
+
+      // Subir archivos si hay
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('ticket_id', ticketId.toString());
+
+        await api.post('/ticket-attachments/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
+
       navigate('/tickets');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Error al crear ticket');
@@ -102,7 +136,7 @@ export default function TicketNew() {
             </select>
           </div>
 
-          <div className="mb-6">
+          <div className="mb-4">
             <label className="block text-gray-700 mb-2">Prioridad</label>
             <select
               value={priority}
@@ -114,6 +148,44 @@ export default function TicketNew() {
               <option value="HIGH">Alta</option>
               <option value="CRITICAL">Crítica</option>
             </select>
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-gray-700 mb-2">Archivos Adjuntos (opcional)</label>
+            <label className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 cursor-pointer inline-block">
+              📎 Seleccionar Archivos
+              <input
+                type="file"
+                onChange={handleFileChange}
+                className="hidden"
+                multiple
+              />
+            </label>
+
+            {files.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {files.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between border p-2 rounded">
+                    <div className="flex items-center gap-2">
+                      <span>
+                        {file.type.includes('image') ? '🖼️' : 
+                         file.type.includes('pdf') ? '📄' : 
+                         file.type.includes('video') ? '🎬' : '📎'}
+                      </span>
+                      <span className="text-sm">{file.name}</span>
+                      <span className="text-gray-500 text-xs">({formatFileSize(file.size)})</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      className="text-red-500 hover:underline text-sm"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex gap-4">

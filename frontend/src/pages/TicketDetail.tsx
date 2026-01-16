@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import api from '../services/api';
-import { Ticket, TicketStatus, TicketPriority, User, UserRole, TicketWorkLog, WorkLogStatus } from '../types';
+import { Ticket, TicketStatus, TicketPriority, User, UserRole, TicketWorkLog, WorkLogStatus, TicketComment, TicketAttachment  } from '../types';
 import { useAuth } from '../context/AuthContext';
 
 export default function TicketDetail() {
@@ -14,12 +14,18 @@ export default function TicketDetail() {
   const [devs, setDevs] = useState<User[]>([]);
   const [validators, setValidators] = useState<User[]>([]);
   const [workLogs, setWorkLogs] = useState<TicketWorkLog[]>([]);
+  const [comments, setComments] = useState<TicketComment[]>([]);
+  const [attachments, setAttachments] = useState<TicketAttachment[]>([]);
+  const [showAttachments, setShowAttachments] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [newComment, setNewComment] = useState('');
   const [totalTime, setTotalTime] = useState<{ totalMinutes: number; attempts: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showComments, setShowComments] = useState(false);
 
   const [status, setStatus] = useState<TicketStatus>(TicketStatus.OPEN);
   const [priority, setPriority] = useState<TicketPriority>(TicketPriority.MEDIUM);
@@ -36,27 +42,29 @@ export default function TicketDetail() {
   useEffect(() => {
     fetchTicket();
     fetchWorkLogs();
+    fetchComments();
+    fetchAttachments();
     if (user?.role === 'ADMIN') {
       fetchDevs();
       fetchValidators();
     }
   }, [id]);
 
-const fetchTicket = async () => {
-  try {
-    const response = await api.get(`/tickets/${id}`);
-    const data = response.data;
-    setTicket(data);
-    setStatus(data.status);
-    setPriority(data.priority);
-    setAssignedTo(data.assigned_to?.toString() || '');
-    setValidatorId(data.validator_id?.toString() || '');
-  } catch (err: any) {
-    setError(err.response?.data?.message || 'Error al cargar ticket');
-  } finally {
-    setLoading(false);
-  }
-};
+  const fetchTicket = async () => {
+    try {
+      const response = await api.get(`/tickets/${id}`);
+      const data = response.data;
+      setTicket(data);
+      setStatus(data.status);
+      setPriority(data.priority);
+      setAssignedTo(data.assigned_to?.toString() || '');
+      setValidatorId(data.validator_id?.toString() || '');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al cargar ticket');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchDevs = async () => {
     try {
@@ -91,20 +99,120 @@ const fetchTicket = async () => {
     }
   };
 
-const handleUpdate = async () => {
+  const fetchComments = async () => {
+    try {
+      const response = await api.get(`/ticket-comments/ticket/${id}`);
+      setComments(response.data);
+    } catch (err) {
+      console.error('Error al cargar comentarios', err);
+    }
+  };
+
+  const fetchAttachments = async () => {
   try {
-    await api.patch(`/tickets/${id}`, {
-      status,
-      priority,
-      assigned_to: assignedTo ? Number(assignedTo) : null,
-      validator_id: validatorId ? Number(validatorId) : null,
-    });
-    setEditing(false);
-    await fetchTicket();
-  } catch (err: any) {
-    setError(err.response?.data?.message || 'Error al actualizar ticket');
+    const response = await api.get(`/ticket-attachments/ticket/${id}`);
+    setAttachments(response.data);
+  } catch (err) {
+    console.error('Error al cargar archivos', err);
   }
 };
+
+const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  setUploading(true);
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('ticket_id', id!);
+
+    await api.post('/ticket-attachments/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    fetchAttachments();
+  } catch (err: any) {
+    setError(err.response?.data?.message || 'Error al subir archivo');
+  } finally {
+    setUploading(false);
+    e.target.value = '';
+  }
+};
+
+const handleDownloadFile = async (attachmentId: number, filename: string) => {
+  try {
+    const response = await api.get(`/ticket-attachments/download/${attachmentId}`, {
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (err: any) {
+    setError(err.response?.data?.message || 'Error al descargar archivo');
+  }
+};
+
+const handleDeleteAttachment = async (attachmentId: number) => {
+  if (!confirm('¿Estás seguro de eliminar este archivo?')) return;
+
+  try {
+    await api.delete(`/ticket-attachments/${attachmentId}`);
+    fetchAttachments();
+  } catch (err: any) {
+    setError(err.response?.data?.message || 'Error al eliminar archivo');
+  }
+};
+
+const formatFileSize = (bytes: number) => {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+};
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+
+    try {
+      await api.post('/ticket-comments', {
+        ticket_id: Number(id),
+        comment: newComment,
+      });
+      setNewComment('');
+      fetchComments();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al agregar comentario');
+    }
+  };
+
+  const handleDeleteComment = async (commentId: number) => {
+    if (!confirm('¿Estás seguro de eliminar este comentario?')) return;
+
+    try {
+      await api.delete(`/ticket-comments/${commentId}`);
+      fetchComments();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al eliminar comentario');
+    }
+  };
+
+  const handleUpdate = async () => {
+    try {
+      await api.patch(`/tickets/${id}`, {
+        status,
+        priority,
+        assigned_to: assignedTo ? Number(assignedTo) : null,
+        validator_id: validatorId ? Number(validatorId) : null,
+      });
+      setEditing(false);
+      await fetchTicket();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Error al actualizar ticket');
+    }
+  };
 
   const handleStart = async () => {
     try {
@@ -223,10 +331,42 @@ const handleUpdate = async () => {
         )}
 
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="mb-6">
-            <h3 className="text-xl font-semibold mb-2">{ticket.title}</h3>
-            <p className="text-gray-600">{ticket.description}</p>
-          </div>
+<div className="mb-6">
+  <h3 className="text-xl font-semibold mb-2">{ticket.title}</h3>
+  <p className="text-gray-600 whitespace-pre-wrap">{ticket.description}</p>
+  
+  {/* Archivos originales del ticket */}
+  {attachments.filter(a => {
+    const ticketDate = new Date(ticket.created_at).getTime();
+    const attachDate = new Date(a.created_at).getTime();
+    return Math.abs(attachDate - ticketDate) < 60000; // menos de 1 minuto de diferencia
+  }).length > 0 && (
+    <div className="mt-4 p-3 bg-gray-50 rounded">
+      <p className="text-sm text-gray-500 mb-2">Archivos adjuntos:</p>
+      <div className="flex flex-wrap gap-2">
+        {attachments
+          .filter(a => {
+            const ticketDate = new Date(ticket.created_at).getTime();
+            const attachDate = new Date(a.created_at).getTime();
+            return Math.abs(attachDate - ticketDate) < 60000;
+          })
+          .map((attachment) => (
+            <button
+              key={attachment.id}
+              onClick={() => handleDownloadFile(attachment.id, attachment.filename)}
+              className="flex items-center gap-1 bg-white border px-2 py-1 rounded text-sm hover:bg-gray-100"
+            >
+              <span>
+                {attachment.filetype.includes('image') ? '🖼️' : 
+                 attachment.filetype.includes('pdf') ? '📄' : '📎'}
+              </span>
+              {attachment.filename}
+            </button>
+          ))}
+      </div>
+    </div>
+  )}
+</div>
 
           <div className="grid grid-cols-2 gap-6 mb-6">
             <div>
@@ -402,6 +542,73 @@ const handleUpdate = async () => {
             )}
           </div>
         </div>
+
+        {/* Sección de Comentarios */}
+{/* Sección de Comentarios */}
+<div className="bg-white rounded-lg shadow p-6 mb-6">
+  <div 
+    className="flex justify-between items-center cursor-pointer"
+    onClick={() => setShowComments(!showComments)}
+  >
+    <h3 className="text-lg font-semibold">
+      Comentarios ({comments.length})
+    </h3>
+    <span className="text-gray-500">
+      {showComments ? '▲' : '▼'}
+    </span>
+  </div>
+  
+  {showComments && (
+    <div className="mt-4">
+      {/* Formulario para agregar comentario */}
+      <div className="mb-6">
+        <textarea
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          className="w-full px-3 py-2 border rounded-lg mb-2"
+          rows={3}
+          placeholder="Escribe un comentario..."
+        />
+        <button
+          onClick={handleAddComment}
+          disabled={!newComment.trim()}
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-blue-300"
+        >
+          Agregar Comentario
+        </button>
+      </div>
+
+      {/* Lista de comentarios */}
+      {comments.length === 0 ? (
+        <p className="text-gray-500">No hay comentarios</p>
+      ) : (
+        <div className="space-y-4 max-h-96 overflow-y-auto">
+          {comments.map((comment) => (
+            <div key={comment.id} className="border-b pb-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <span className="font-medium">{comment.user?.name}</span>
+                  <span className="text-gray-500 text-sm ml-2">
+                    {new Date(comment.created_at).toLocaleString()}
+                  </span>
+                </div>
+                {comment.user_id === user?.id && (
+                  <button
+                    onClick={() => handleDeleteComment(comment.id)}
+                    className="text-red-500 text-sm hover:underline"
+                  >
+                    Eliminar
+                  </button>
+                )}
+              </div>
+              <p className="mt-2 text-gray-700 whitespace-pre-wrap">{comment.comment}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )}
+</div>
 
         {workLogs.length > 0 && (
           <div className="bg-white rounded-lg shadow p-6">

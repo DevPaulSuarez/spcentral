@@ -112,3 +112,25 @@ export interface AuthResponse {
   user: User;
   access_token: string;
 }
+
+export interface TicketComment {
+  id: number;
+  ticket_id: number;
+  user_id: number;
+  comment: string;
+  created_at: string;
+  user?: User;
+}
+
+export interface TicketAttachment {
+  id: number;
+  ticket_id: number;
+  comment_id?: number;
+  user_id: number;
+  filename: string;
+  filepath: string;
+  filetype: string;
+  filesize: number;
+  created_at: string;
+  user?: User;
+}

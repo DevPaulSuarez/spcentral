@@ -11,6 +11,8 @@ import { TicketsModule } from './modules/tickets/tickets.module';
 import { TicketReviewsModule } from './modules/ticket-reviews/ticket-reviews.module';
 import { TicketStatusHistoryModule } from './modules/ticket-status-history/ticket-status-history.module';
 import { TicketWorkLogsModule } from './modules/ticket-work-logs/ticket-work-logs.module';
+import { TicketCommentsModule } from './modules/ticket-comments/ticket-comments.module';
+import { TicketAttachmentsModule } from './modules/ticket-attachments/ticket-attachments.module';
 
 
 @Module({
@@ -40,6 +42,9 @@ import { TicketWorkLogsModule } from './modules/ticket-work-logs/ticket-work-log
     TicketReviewsModule,
     TicketStatusHistoryModule,
     TicketWorkLogsModule,
+    TicketCommentsModule,
+    TicketAttachmentsModule,
+
   ],
   controllers: [AppController],
   providers: [AppService],

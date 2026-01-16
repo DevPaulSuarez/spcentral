@@ -17,6 +17,7 @@ export default function TicketDetail() {
   const [comments, setComments] = useState<TicketComment[]>([]);
   const [attachments, setAttachments] = useState<TicketAttachment[]>([]);
   const [showAttachments, setShowAttachments] = useState(true);
+  const [imageUrls, setImageUrls] = useState<{ [key: number]: string }>({});
   const [uploading, setUploading] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [totalTime, setTotalTime] = useState<{ totalMinutes: number; attempts: number } | null>(null);
@@ -26,6 +27,7 @@ export default function TicketDetail() {
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [commentFiles, setCommentFiles] = useState<File[]>([]);
 
   const [status, setStatus] = useState<TicketStatus>(TicketStatus.OPEN);
   const [priority, setPriority] = useState<TicketPriority>(TicketPriority.MEDIUM);
@@ -35,9 +37,46 @@ export default function TicketDetail() {
   const canEdit = user?.role === 'ADMIN';
   const isDev = user?.role === 'DEV';
   const isValidator = user?.role === 'VALIDATOR';
+  
+  const canComment = () => {
+  if (!ticket) return false;
+  
+  const status = ticket.status;
+  const role = user?.role;
+  
+  if (role === 'ADMIN') return true;
+  
+  if (role === 'CLIENT') {
+    return ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'REJECTED'].includes(status);
+  }
+  
+  if (role === 'DEV') {
+    if (status === 'OPEN' && ticket.assigned_to === user?.id) return true;
+    return ['IN_PROGRESS', 'RESOLVED', 'REJECTED'].includes(status);
+  }
+  
+  if (role === 'VALIDATOR') {
+    return ['IN_REVIEW', 'RESOLVED', 'REJECTED'].includes(status);
+  }
+  
+  return false;
+};
   const isAssignedDev = isDev && ticket?.assigned_to === user?.id;
   const isAssignedValidator = isValidator && ticket?.validator_id === user?.id;
   const canValidate = user?.role === 'ADMIN' || isAssignedValidator;
+
+    const loadImagePreview = async (attachmentId: number) => {
+  try {
+    const response = await api.get(`/ticket-attachments/view/${attachmentId}`, {
+      responseType: 'blob',
+    });
+    const url = URL.createObjectURL(response.data);
+    setImageUrls(prev => ({ ...prev, [attachmentId]: url }));
+  } catch (err) {
+    console.error('Error al cargar imagen', err);
+  }
+};
+
 
   useEffect(() => {
     fetchTicket();
@@ -49,6 +88,15 @@ export default function TicketDetail() {
       fetchValidators();
     }
   }, [id]);
+
+  // Cargar vistas previas de imágenes
+useEffect(() => {
+  attachments.forEach(attachment => {
+    if (attachment.filetype.includes('image') && !imageUrls[attachment.id]) {
+      loadImagePreview(attachment.id);
+    }
+  });
+}, [attachments]);
 
   const fetchTicket = async () => {
     try {
@@ -173,20 +221,50 @@ const formatFileSize = (bytes: number) => {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 };
 
-  const handleAddComment = async () => {
-    if (!newComment.trim()) return;
+const handleAddComment = async () => {
+  if (!newComment.trim() && commentFiles.length === 0) return;
 
-    try {
-      await api.post('/ticket-comments', {
-        ticket_id: Number(id),
-        comment: newComment,
+  try {
+    // Crear comentario
+    const response = await api.post('/ticket-comments', {
+      ticket_id: Number(id),
+      comment: newComment || '(archivo adjunto)',
+    });
+
+    const commentId = response.data.id;
+
+    // Subir archivos del comentario
+    for (const file of commentFiles) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('ticket_id', id!);
+      formData.append('comment_id', commentId.toString());
+
+      await api.post('/ticket-attachments/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setNewComment('');
-      fetchComments();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al agregar comentario');
     }
-  };
+
+    setNewComment('');
+    setCommentFiles([]);
+    fetchComments();
+    fetchAttachments();
+  } catch (err: any) {
+    setError(err.response?.data?.message || 'Error al agregar comentario');
+  }
+};
+
+const handleCommentFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const files = e.target.files;
+  if (files) {
+    setCommentFiles([...commentFiles, ...Array.from(files)]);
+  }
+  e.target.value = '';
+};
+
+const removeCommentFile = (index: number) => {
+  setCommentFiles(commentFiles.filter((_, i) => i !== index));
+};
 
   const handleDeleteComment = async (commentId: number) => {
     if (!confirm('¿Estás seguro de eliminar este comentario?')) return;
@@ -311,6 +389,10 @@ const formatFileSize = (bytes: number) => {
     return <Layout><p>Ticket no encontrado</p></Layout>;
   }
 
+
+
+
+
   return (
     <Layout>
       <div className="max-w-4xl mx-auto">
@@ -335,37 +417,53 @@ const formatFileSize = (bytes: number) => {
   <h3 className="text-xl font-semibold mb-2">{ticket.title}</h3>
   <p className="text-gray-600 whitespace-pre-wrap">{ticket.description}</p>
   
-  {/* Archivos originales del ticket */}
-  {attachments.filter(a => {
-    const ticketDate = new Date(ticket.created_at).getTime();
-    const attachDate = new Date(a.created_at).getTime();
-    return Math.abs(attachDate - ticketDate) < 60000; // menos de 1 minuto de diferencia
-  }).length > 0 && (
-    <div className="mt-4 p-3 bg-gray-50 rounded">
-      <p className="text-sm text-gray-500 mb-2">Archivos adjuntos:</p>
-      <div className="flex flex-wrap gap-2">
-        {attachments
-          .filter(a => {
-            const ticketDate = new Date(ticket.created_at).getTime();
-            const attachDate = new Date(a.created_at).getTime();
-            return Math.abs(attachDate - ticketDate) < 60000;
-          })
-          .map((attachment) => (
-            <button
-              key={attachment.id}
-              onClick={() => handleDownloadFile(attachment.id, attachment.filename)}
-              className="flex items-center gap-1 bg-white border px-2 py-1 rounded text-sm hover:bg-gray-100"
-            >
-              <span>
-                {attachment.filetype.includes('image') ? '🖼️' : 
-                 attachment.filetype.includes('pdf') ? '📄' : '📎'}
-              </span>
-              {attachment.filename}
-            </button>
-          ))}
-      </div>
+{/* Archivos originales del ticket */}
+{attachments.filter(a => {
+  const ticketDate = new Date(ticket.created_at).getTime();
+  const attachDate = new Date(a.created_at).getTime();
+  return Math.abs(attachDate - ticketDate) < 60000;
+}).length > 0 && (
+  <div className="mt-4 p-3 bg-gray-50 rounded">
+    <p className="text-sm text-gray-500 mb-2">Archivos adjuntos:</p>
+    <div className="flex flex-wrap gap-3">
+      {attachments
+        .filter(a => {
+          const ticketDate = new Date(ticket.created_at).getTime();
+          const attachDate = new Date(a.created_at).getTime();
+          return Math.abs(attachDate - ticketDate) < 60000;
+        })
+        .map((attachment) => (
+          <div key={attachment.id} className="border rounded p-2 bg-white">
+            {attachment.filetype.includes('image') ? (
+  imageUrls[attachment.id] ? (
+    <img
+      src={imageUrls[attachment.id]}
+      alt={attachment.filename}
+      className="max-w-xs max-h-48 object-contain cursor-pointer rounded"
+      onClick={() => window.open(imageUrls[attachment.id], '_blank')}
+    />
+  ) : (
+    <div className="w-32 h-32 bg-gray-200 flex items-center justify-center rounded">
+      <span className="text-gray-500 text-sm">Cargando...</span>
     </div>
-  )}
+  )
+) : (
+              <button
+                onClick={() => handleDownloadFile(attachment.id, attachment.filename)}
+                className="flex items-center gap-1 px-2 py-1 text-sm hover:bg-gray-100"
+              >
+                <span>
+                  {attachment.filetype.includes('pdf') ? '📄' : '📎'}
+                </span>
+                {attachment.filename}
+              </button>
+            )}
+            <p className="text-xs text-gray-500 mt-1 text-center">{attachment.filename}</p>
+          </div>
+        ))}
+    </div>
+  </div>
+)}
 </div>
 
           <div className="grid grid-cols-2 gap-6 mb-6">
@@ -560,57 +658,125 @@ const formatFileSize = (bytes: number) => {
   
   {showComments && (
     <div className="mt-4">
-      {/* Formulario para agregar comentario */}
-      <div className="mb-6">
-        <textarea
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          className="w-full px-3 py-2 border rounded-lg mb-2"
-          rows={3}
-          placeholder="Escribe un comentario..."
-        />
-        <button
-          onClick={handleAddComment}
-          disabled={!newComment.trim()}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-blue-300"
-        >
-          Agregar Comentario
-        </button>
+{/* Formulario para agregar comentario */}
+{canComment() ? (
+  <div className="mb-6">
+    <textarea
+      value={newComment}
+      onChange={(e) => setNewComment(e.target.value)}
+      className="w-full px-3 py-2 border rounded-lg mb-2"
+      rows={3}
+      placeholder="Escribe un comentario..."
+    />
+    
+    {commentFiles.length > 0 && (
+      <div className="mb-2 space-y-1">
+        {commentFiles.map((file, index) => (
+          <div key={index} className="flex items-center gap-2 text-sm bg-gray-100 p-2 rounded">
+            <span>📎 {file.name}</span>
+            <button
+              onClick={() => removeCommentFile(index)}
+              className="text-red-500 hover:underline"
+            >
+              Quitar
+            </button>
+          </div>
+        ))}
       </div>
+    )}
+    
+    <div className="flex gap-2">
+      <label className="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 cursor-pointer">
+        📎 Adjuntar
+        <input
+          type="file"
+          onChange={handleCommentFileChange}
+          className="hidden"
+          multiple
+        />
+      </label>
+      <button
+        onClick={handleAddComment}
+        disabled={!newComment.trim() && commentFiles.length === 0}
+        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-blue-300"
+      >
+        Agregar Comentario
+      </button>
+    </div>
+  </div>
+) : (
+  <p className="text-gray-500 mb-4 text-sm italic">
+    No puedes comentar en este momento.
+  </p>
+)}
 
-      {/* Lista de comentarios */}
-      {comments.length === 0 ? (
-        <p className="text-gray-500">No hay comentarios</p>
-      ) : (
-        <div className="space-y-4 max-h-96 overflow-y-auto">
-          {comments.map((comment) => (
-            <div key={comment.id} className="border-b pb-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className="font-medium">{comment.user?.name}</span>
-                  <span className="text-gray-500 text-sm ml-2">
-                    {new Date(comment.created_at).toLocaleString()}
-                  </span>
-                </div>
-                {comment.user_id === user?.id && (
-                  <button
-                    onClick={() => handleDeleteComment(comment.id)}
-                    className="text-red-500 text-sm hover:underline"
-                  >
-                    Eliminar
-                  </button>
-                )}
-              </div>
-              <p className="mt-2 text-gray-700 whitespace-pre-wrap">{comment.comment}</p>
+{/* Lista de comentarios */}
+{comments.length === 0 ? (
+  <p className="text-gray-500">No hay comentarios</p>
+) : (
+  <div className="space-y-4 max-h-96 overflow-y-auto">
+    {[...comments].reverse().map((comment) => {
+      const commentAttachments = attachments.filter(a => a.comment_id === comment.id);
+      return (
+        <div key={comment.id} className="border-b pb-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="font-medium">{comment.user?.name}</span>
+              <span className="text-gray-500 text-sm ml-2">
+                {new Date(comment.created_at).toLocaleString()}
+              </span>
             </div>
-          ))}
+            {comment.user_id === user?.id && (
+              <button
+                onClick={() => handleDeleteComment(comment.id)}
+                className="text-red-500 text-sm hover:underline"
+              >
+                Eliminar
+              </button>
+            )}
+          </div>
+          <p className="mt-2 text-gray-700 whitespace-pre-wrap">{comment.comment}</p>
+          
+          {/* Archivos del comentario */}
+          {commentAttachments.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {commentAttachments.map((attachment) => (
+                <div key={attachment.id} className="border rounded p-2 bg-gray-50">
+                  {attachment.filetype.includes('image') ? (
+                    imageUrls[attachment.id] ? (
+                      <img
+                        src={imageUrls[attachment.id]}
+                        alt={attachment.filename}
+                        className="max-w-32 max-h-32 object-contain cursor-pointer rounded"
+                        onClick={() => window.open(imageUrls[attachment.id], '_blank')}
+                      />
+                    ) : (
+                      <div className="w-32 h-32 bg-gray-200 flex items-center justify-center rounded">
+                        <span className="text-gray-500 text-xs">Cargando...</span>
+                      </div>
+                    )
+                  ) : (
+                    <button
+                      onClick={() => handleDownloadFile(attachment.id, attachment.filename)}
+                      className="flex items-center gap-1 text-sm text-blue-500 hover:underline"
+                    >
+                      📎 {attachment.filename}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+      );
+    })}
+  </div>
       )}
     </div>
   )}
 </div>
 
-        {workLogs.length > 0 && (
+        {workLogs.length > 0 && user?.role !== 'CLIENT' && (
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold mb-4">Historial de Trabajo</h3>
             <div className="overflow-x-auto">

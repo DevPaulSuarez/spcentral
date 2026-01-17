@@ -344,4 +344,42 @@ async update(id: number, updateTicketDto: UpdateTicketDto, changedBy: number): P
       throw new BadRequestException('Tickets can only be validated by VALIDATOR users');
     }
   }
+
+
+  async getStats(userId: number, role: string): Promise<any> {
+    const baseWhere: any = { deleted_at: IsNull() };
+
+    // Filtrar según rol
+    let tickets: Ticket[];
+    if (role === 'CLIENT') {
+      tickets = await this.ticketsRepository.find({
+        where: { ...baseWhere, created_by: userId },
+      });
+    } else if (role === 'DEV') {
+      tickets = await this.ticketsRepository.find({
+        where: { ...baseWhere, assigned_to: userId },
+      });
+    } else if (role === 'VALIDATOR') {
+      tickets = await this.ticketsRepository.find({
+        where: { ...baseWhere, validator_id: userId },
+      });
+    } else {
+      tickets = await this.ticketsRepository.find({
+        where: baseWhere,
+      });
+    }
+
+    const stats = {
+      total: tickets.length,
+      open: tickets.filter(t => t.status === TicketStatus.OPEN).length,
+      inProgress: tickets.filter(t => t.status === TicketStatus.IN_PROGRESS).length,
+      inReview: tickets.filter(t => t.status === TicketStatus.IN_REVIEW).length,
+      resolved: tickets.filter(t => t.status === TicketStatus.RESOLVED).length,
+      rejected: tickets.filter(t => t.status === TicketStatus.REJECTED).length,
+      critical: tickets.filter(t => t.priority === 'CRITICAL').length,
+      unassigned: tickets.filter(t => !t.assigned_to).length,
+    };
+
+    return stats;
+  }
 }

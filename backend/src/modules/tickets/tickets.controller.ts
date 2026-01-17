@@ -53,6 +53,14 @@ export class TicketsController {
     return this.ticketsService.findAll(filterDto);
   }
 
+  @Get('stats/dashboard')
+  @Roles(UserRole.ADMIN, UserRole.DEV, UserRole.VALIDATOR, UserRole.CLIENT)
+  @ApiOperation({ summary: 'Obtener estadísticas de tickets' })
+  @ApiResponse({ status: 200, description: 'Estadísticas de tickets' })
+  getStats(@Request() req) {
+    return this.ticketsService.getStats(req.user.id, req.user.role);
+  }
+
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.DEV, UserRole.VALIDATOR, UserRole.CLIENT)
   @ApiOperation({ summary: 'Obtener ticket por ID' })

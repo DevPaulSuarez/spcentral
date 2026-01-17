@@ -16,9 +16,7 @@ export default function TicketDetail() {
   const [workLogs, setWorkLogs] = useState<TicketWorkLog[]>([]);
   const [comments, setComments] = useState<TicketComment[]>([]);
   const [attachments, setAttachments] = useState<TicketAttachment[]>([]);
-  const [showAttachments, setShowAttachments] = useState(true);
   const [imageUrls, setImageUrls] = useState<{ [key: number]: string }>({});
-  const [uploading, setUploading] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [totalTime, setTotalTime] = useState<{ totalMinutes: number; attempts: number } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -165,27 +163,6 @@ useEffect(() => {
   }
 };
 
-const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
-
-  setUploading(true);
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('ticket_id', id!);
-
-    await api.post('/ticket-attachments/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    fetchAttachments();
-  } catch (err: any) {
-    setError(err.response?.data?.message || 'Error al subir archivo');
-  } finally {
-    setUploading(false);
-    e.target.value = '';
-  }
-};
 
 const handleDownloadFile = async (attachmentId: number, filename: string) => {
   try {
@@ -204,22 +181,6 @@ const handleDownloadFile = async (attachmentId: number, filename: string) => {
   }
 };
 
-const handleDeleteAttachment = async (attachmentId: number) => {
-  if (!confirm('¿Estás seguro de eliminar este archivo?')) return;
-
-  try {
-    await api.delete(`/ticket-attachments/${attachmentId}`);
-    fetchAttachments();
-  } catch (err: any) {
-    setError(err.response?.data?.message || 'Error al eliminar archivo');
-  }
-};
-
-const formatFileSize = (bytes: number) => {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-};
 
 const handleAddComment = async () => {
   if (!newComment.trim() && commentFiles.length === 0) return;

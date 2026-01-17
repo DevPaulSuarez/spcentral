@@ -146,20 +146,30 @@ export default function Users() {
     return colors[role];
   };
 
+  const getRoleLabel = (role: UserRole) => {
+    const labels = {
+      ADMIN: 'Admin',
+      DEV: 'Dev',
+      VALIDATOR: 'Validador',
+      CLIENT: 'Cliente',
+    };
+    return labels[role];
+  };
+
   return (
     <Layout>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Usuarios</h2>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h2 className="text-xl md:text-2xl font-bold">Usuarios</h2>
         <button
           onClick={() => openModal()}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm"
         >
           Nuevo Usuario
         </button>
       </div>
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
           {error}
         </div>
       )}
@@ -167,122 +177,162 @@ export default function Users() {
       {loading ? (
         <p>Cargando...</p>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Idioma</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">{user.id}</td>
-                  <td className="px-6 py-4">{user.name}</td>
-                  <td className="px-6 py-4">{user.email}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-xs ${getRoleColor(user.role)}`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">{user.language.toUpperCase()}</td>
-                  <td className="px-6 py-4">
-                    <button
-                      onClick={() => openModal(user)}
-                      className="text-blue-500 hover:underline mr-3"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => openPasswordModal(user)}
-                      className="text-yellow-600 hover:underline mr-3"
-                    >
-                      Contraseña
-                    </button>
-                    <button
-                      onClick={() => handleDelete(user.id)}
-                      className="text-red-500 hover:underline"
-                    >
-                      Eliminar
-                    </button>
-                  </td>
+        <>
+          {/* Vista móvil - Cards */}
+          <div className="md:hidden space-y-4">
+            {users.map((user) => (
+              <div key={user.id} className="bg-white rounded-lg shadow p-4">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <p className="font-medium">{user.name}</p>
+                    <p className="text-gray-500 text-sm">{user.email}</p>
+                  </div>
+                  <span className={`px-2 py-1 rounded text-xs ${getRoleColor(user.role)}`}>
+                    {getRoleLabel(user.role)}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => openModal(user)}
+                    className="bg-blue-100 text-blue-700 px-3 py-1 rounded text-sm"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => openPasswordModal(user)}
+                    className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded text-sm"
+                  >
+                    Contraseña
+                  </button>
+                  <button
+                    onClick={() => handleDelete(user.id)}
+                    className="bg-red-100 text-red-700 px-3 py-1 rounded text-sm"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Vista desktop - Tabla */}
+          <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Idioma</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {users.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">{user.id}</td>
+                    <td className="px-6 py-4">{user.name}</td>
+                    <td className="px-6 py-4">{user.email}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 rounded text-xs ${getRoleColor(user.role)}`}>
+                        {getRoleLabel(user.role)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">{user.language.toUpperCase()}</td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => openModal(user)}
+                        className="text-blue-500 hover:underline mr-3"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => openPasswordModal(user)}
+                        className="text-yellow-600 hover:underline mr-3"
+                      >
+                        Contraseña
+                      </button>
+                      <button
+                        onClick={() => handleDelete(user.id)}
+                        className="text-red-500 hover:underline"
+                      >
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white p-4 md:p-6 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg md:text-xl font-bold mb-4">
               {editing ? 'Editar Usuario' : 'Nuevo Usuario'}
             </h3>
 
             {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
                 {error}
               </div>
             )}
 
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
-                <label className="block text-gray-700 mb-2">Nombre</label>
+                <label className="block text-gray-700 mb-2 text-sm">Nombre</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
                   required
                 />
               </div>
 
               <div className="mb-4">
-                <label className="block text-gray-700 mb-2">Email</label>
+                <label className="block text-gray-700 mb-2 text-sm">Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
                   required
                 />
               </div>
 
               {!editing && (
                 <div className="mb-4">
-                  <label className="block text-gray-700 mb-2">Contraseña</label>
+                  <label className="block text-gray-700 mb-2 text-sm">Contraseña</label>
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
                     required
                   />
                 </div>
               )}
 
               <div className="mb-4">
-                <label className="block text-gray-700 mb-2">Teléfono</label>
+                <label className="block text-gray-700 mb-2 text-sm">Teléfono</label>
                 <input
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
                 />
               </div>
 
               <div className="mb-4">
-                <label className="block text-gray-700 mb-2">Rol</label>
+                <label className="block text-gray-700 mb-2 text-sm">Rol</label>
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value as UserRole)}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
                 >
                   <option value="CLIENT">Cliente</option>
                   <option value="DEV">Desarrollador</option>
@@ -292,28 +342,28 @@ export default function Users() {
               </div>
 
               <div className="mb-6">
-                <label className="block text-gray-700 mb-2">Idioma</label>
+                <label className="block text-gray-700 mb-2 text-sm">Idioma</label>
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value as Language)}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
                 >
                   <option value="es">Español</option>
                   <option value="en">English</option>
                 </select>
               </div>
 
-              <div className="flex gap-4">
+              <div className="flex gap-2">
                 <button
                   type="submit"
-                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                  className="flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm"
                 >
                   {editing ? 'Guardar' : 'Crear'}
                 </button>
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 text-sm"
                 >
                   Cancelar
                 </button>
@@ -324,42 +374,43 @@ export default function Users() {
       )}
 
       {showPasswordModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md">
-            <h3 className="text-xl font-bold mb-4">
-              Cambiar Contraseña - {selectedUser?.name}
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white p-4 md:p-6 rounded-lg w-full max-w-md">
+            <h3 className="text-lg md:text-xl font-bold mb-4">
+              Cambiar Contraseña
             </h3>
+            <p className="text-gray-600 text-sm mb-4">{selectedUser?.name}</p>
 
             {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
                 {error}
               </div>
             )}
 
             <form onSubmit={handlePasswordReset}>
               <div className="mb-6">
-                <label className="block text-gray-700 mb-2">Nueva Contraseña</label>
+                <label className="block text-gray-700 mb-2 text-sm">Nueva Contraseña</label>
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
                   minLength={6}
                   required
                 />
               </div>
 
-              <div className="flex gap-4">
+              <div className="flex gap-2">
                 <button
                   type="submit"
-                  className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+                  className="flex-1 bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 text-sm"
                 >
-                  Cambiar Contraseña
+                  Cambiar
                 </button>
                 <button
                   type="button"
                   onClick={closePasswordModal}
-                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
+                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 text-sm"
                 >
                   Cancelar
                 </button>

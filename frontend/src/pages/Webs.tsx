@@ -122,53 +122,105 @@ export default function Webs() {
       {loading ? (
         <p>Cargando...</p>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dominio</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {webs.map((web) => (
-                <tr key={web.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">{web.id}</td>
-                  <td className="px-6 py-4">{web.name}</td>
-                  <td className="px-6 py-4">{web.domain}</td>
-                  <td className="px-6 py-4">{web.client?.name || '-'}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-xs ${web.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {web.active ? 'Activa' : 'Inactiva'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <button
-                      onClick={() => openModal(web)}
-                      className="text-blue-500 hover:underline mr-4"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => handleDelete(web.id)}
-                      className="text-red-500 hover:underline"
-                    >
-                      Eliminar
-                    </button>
-                  </td>
+        <>
+          {/* 🌐 MODO CARDS PARA MÓVIL */}
+          <div className="grid grid-cols-1 sm:hidden gap-4">
+            {webs.map((web) => (
+              <div
+                key={web.id}
+                className="bg-white rounded-lg shadow p-4 border border-gray-100"
+              >
+                <p className="text-lg font-semibold">{web.name}</p>
+                <p className="text-gray-600">{web.domain}</p>
+
+                <p className="mt-2 text-sm text-gray-500">
+                  Cliente: <span className="font-medium">{web.client?.name || '-'}</span>
+                </p>
+
+                <span
+                  className={`inline-block mt-2 px-2 py-1 text-xs rounded ${
+                    web.active
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-red-100 text-red-700'
+                  }`}
+                >
+                  {web.active ? 'Activa' : 'Inactiva'}
+                </span>
+
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={() => openModal(web)}
+                    className="text-blue-600 font-medium"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleDelete(web.id)}
+                    className="text-red-600 font-medium"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* 🖥️ TABLA PARA TABLET / PC */}
+          <div className="hidden sm:block bg-white rounded-lg shadow overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dominio</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {webs.map((web) => (
+                  <tr key={web.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">{web.id}</td>
+                    <td className="px-6 py-4">{web.name}</td>
+                    <td className="px-6 py-4">{web.domain}</td>
+                    <td className="px-6 py-4">{web.client?.name || '-'}</td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-2 py-1 rounded text-xs ${
+                          web.active
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {web.active ? 'Activa' : 'Inactiva'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => openModal(web)}
+                        className="text-blue-500 hover:underline mr-4"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleDelete(web.id)}
+                        className="text-red-500 hover:underline"
+                      >
+                        Eliminar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
+      {/* MODAL */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
             <h3 className="text-xl font-bold mb-4">
               {editing ? 'Editar Web' : 'Nueva Web'}

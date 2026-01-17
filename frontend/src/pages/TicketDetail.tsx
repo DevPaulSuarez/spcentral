@@ -357,15 +357,15 @@ const removeCommentFile = (index: number) => {
   return (
     <Layout>
       <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Ticket #{ticket.id}</h2>
-          <button
-            onClick={() => navigate('/tickets')}
-            className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
-          >
-            Volver
-          </button>
-        </div>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+  <h2 className="text-xl md:text-2xl font-bold">Ticket #{ticket.id}</h2>
+  <button
+    onClick={() => navigate('/tickets')}
+    className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 text-sm"
+  >
+    Volver
+  </button>
+</div>
 
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -373,7 +373,7 @@ const removeCommentFile = (index: number) => {
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="bg-white rounded-lg shadow p-4 md:p-6 mb-6">
 <div className="mb-6">
   <h3 className="text-xl font-semibold mb-2">{ticket.title}</h3>
   <p className="text-gray-600 whitespace-pre-wrap">{ticket.description}</p>
@@ -400,7 +400,7 @@ const removeCommentFile = (index: number) => {
     <img
       src={imageUrls[attachment.id]}
       alt={attachment.filename}
-      className="max-w-xs max-h-48 object-contain cursor-pointer rounded"
+      className="max-w-full sm:max-w-xs max-h-48 object-contain cursor-pointer rounded"
       onClick={() => window.open(imageUrls[attachment.id], '_blank')}
     />
   ) : (
@@ -427,7 +427,7 @@ const removeCommentFile = (index: number) => {
 )}
 </div>
 
-          <div className="grid grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-6">
             <div>
               <p className="text-gray-500 text-sm">Estado</p>
               {editing && canEdit ? (
@@ -536,7 +536,7 @@ const removeCommentFile = (index: number) => {
             )}
           </div>
 
-          <div className="flex gap-4 flex-wrap">
+          <div className="flex gap-2 md:gap-4 flex-wrap">
             {isAssignedDev && (ticket.status === 'OPEN' || ticket.status === 'REJECTED') && (
               <button
                 onClick={handleStart}
@@ -604,7 +604,7 @@ const removeCommentFile = (index: number) => {
 
         {/* Sección de Comentarios */}
 {/* Sección de Comentarios */}
-<div className="bg-white rounded-lg shadow p-6 mb-6">
+<div className="bg-white rounded-lg shadow p-4 md:p-6 mb-6">
   <div 
     className="flex justify-between items-center cursor-pointer"
     onClick={() => setShowComments(!showComments)}
@@ -708,7 +708,7 @@ const removeCommentFile = (index: number) => {
                       <img
                         src={imageUrls[attachment.id]}
                         alt={attachment.filename}
-                        className="max-w-32 max-h-32 object-contain cursor-pointer rounded"
+                        className="max-w-24 sm:max-w-32 max-h-24 sm:max-h-32 object-contain cursor-pointer rounded"
                         onClick={() => window.open(imageUrls[attachment.id], '_blank')}
                       />
                     ) : (
@@ -737,47 +737,87 @@ const removeCommentFile = (index: number) => {
   )}
 </div>
 
-        {workLogs.length > 0 && user?.role !== 'CLIENT' && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold mb-4">Historial de Trabajo</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Dev</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Inicio</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fin</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tiempo</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Motivo Rechazo</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {workLogs.map((log, index) => (
-                    <tr key={log.id}>
-                      <td className="px-4 py-2">{index + 1}</td>
-                      <td className="px-4 py-2">{log.dev?.name}</td>
-                      <td className="px-4 py-2">{new Date(log.started_at).toLocaleString()}</td>
-                      <td className="px-4 py-2">{log.finished_at ? new Date(log.finished_at).toLocaleString() : '-'}</td>
-                      <td className="px-4 py-2">{calculateLogTime(log)}</td>
-                      <td className="px-4 py-2">
-                        <span className={`px-2 py-1 rounded text-xs ${getWorkLogStatusColor(log.status)}`}>
-                          {log.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 text-red-600">{log.rejection_reason || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+{workLogs.length > 0 && user?.role !== 'CLIENT' && (
+  <div className="bg-white rounded-lg shadow p-4 md:p-6">
+    <h3 className="text-lg font-semibold mb-4">Historial de Trabajo</h3>
+    
+    {/* Vista móvil - Cards */}
+    <div className="md:hidden space-y-4">
+      {workLogs.map((log, index) => (
+        <div key={log.id} className="border rounded-lg p-4 bg-gray-50">
+          <div className="flex justify-between items-start mb-2">
+            <span className="font-medium">Intento #{index + 1}</span>
+            <span className={`px-2 py-1 rounded text-xs ${getWorkLogStatusColor(log.status)}`}>
+              {log.status}
+            </span>
           </div>
-        )}
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-500">Dev:</span>
+              <span>{log.dev?.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Inicio:</span>
+              <span>{new Date(log.started_at).toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Fin:</span>
+              <span>{log.finished_at ? new Date(log.finished_at).toLocaleString() : '-'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Tiempo:</span>
+              <span className="font-medium">{calculateLogTime(log)}</span>
+            </div>
+            {log.rejection_reason && (
+              <div className="mt-2 p-2 bg-red-50 rounded">
+                <span className="text-gray-500 text-xs">Motivo rechazo:</span>
+                <p className="text-red-600 text-sm">{log.rejection_reason}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+
+    {/* Vista desktop - Tabla */}
+    <div className="hidden md:block overflow-x-auto">
+      <table className="w-full">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Dev</th>
+            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Inicio</th>
+            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fin</th>
+            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tiempo</th>
+            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Motivo Rechazo</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-200">
+          {workLogs.map((log, index) => (
+            <tr key={log.id}>
+              <td className="px-4 py-2">{index + 1}</td>
+              <td className="px-4 py-2">{log.dev?.name}</td>
+              <td className="px-4 py-2">{new Date(log.started_at).toLocaleString()}</td>
+              <td className="px-4 py-2">{log.finished_at ? new Date(log.finished_at).toLocaleString() : '-'}</td>
+              <td className="px-4 py-2">{calculateLogTime(log)}</td>
+              <td className="px-4 py-2">
+                <span className={`px-2 py-1 rounded text-xs ${getWorkLogStatusColor(log.status)}`}>
+                  {log.status}
+                </span>
+              </td>
+              <td className="px-4 py-2 text-red-600">{log.rejection_reason || '-'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
 
         {showRejectModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white p-6 rounded-lg w-full max-w-md">
+<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+  <div className="bg-white p-4 md:p-6 rounded-lg w-full max-w-md">
               <h3 className="text-xl font-bold mb-4">Rechazar Ticket</h3>
               <div className="mb-4">
                 <label className="block text-gray-700 mb-2">Motivo del rechazo</label>

@@ -194,19 +194,19 @@ export default function Users() {
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => openModal(user)}
-                    className="bg-blue-100 text-blue-700 px-3 py-1 rounded text-sm"
+                    className="px-3 py-1 text-sm font-medium border border-blue-500 text-blue-600 rounded hover:bg-blue-100"
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => openPasswordModal(user)}
-                    className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded text-sm"
+                    className="px-3 py-1 text-sm font-medium border border-yellow-500 text-yellow-600 rounded hover:bg-yellow-200 transition"
                   >
                     Contraseña
                   </button>
                   <button
                     onClick={() => handleDelete(user.id)}
-                    className="bg-red-100 text-red-700 px-3 py-1 rounded text-sm"
+                    className="px-3 py-1 text-sm font-medium border border-red-500 text-red-600 rounded hover:bg-red-200 transition"
                   >
                     Eliminar
                   </button>
@@ -240,26 +240,32 @@ export default function Users() {
                       </span>
                     </td>
                     <td className="px-6 py-4">{user.language.toUpperCase()}</td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() => openModal(user)}
-                        className="text-blue-500 hover:underline mr-3"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => openPasswordModal(user)}
-                        className="text-yellow-600 hover:underline mr-3"
-                      >
-                        Contraseña
-                      </button>
-                      <button
-                        onClick={() => handleDelete(user.id)}
-                        className="text-red-500 hover:underline"
-                      >
-                        Eliminar
-                      </button>
-                    </td>
+<td className="px-6 py-4">
+  <div className="flex flex-wrap gap-2">
+    <button
+      onClick={() => openModal(user)}
+      className="px-3 py-1 text-sm font-medium border border-blue-500 text-blue-600 rounded hover:bg-blue-100"
+    >
+      
+      Editar
+    </button>
+
+    <button
+      onClick={() => openPasswordModal(user)}
+      className="px-3 py-1 text-sm font-medium border border-yellow-500 text-yellow-600 rounded hover:bg-yellow-200 transition"
+    >
+      Contraseña
+    </button>
+
+    <button
+      onClick={() => handleDelete(user.id)}
+      className="px-3 py-1 text-sm font-medium border border-red-500 text-red-600 rounded hover:bg-red-200 transition"
+    >
+      Eliminar
+    </button>
+  </div>
+</td>
+
                   </tr>
                 ))}
               </tbody>

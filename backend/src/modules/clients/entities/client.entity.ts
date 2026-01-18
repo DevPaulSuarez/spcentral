@@ -19,12 +19,6 @@ export class Client {
   @Column({ length: 100 })
   name: string;
 
-  @Column({ length: 100 })
-  email: string;
-
-  @Column({ length: 20, nullable: true })
-  phone: string;
-
   @CreateDateColumn()
   created_at: Date;
 

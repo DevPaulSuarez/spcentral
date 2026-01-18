@@ -134,7 +134,7 @@ export default function Webs() {
                 <p className="text-gray-600">{web.domain}</p>
 
                 <p className="mt-2 text-sm text-gray-500">
-                  Cliente: <span className="font-medium">{web.client?.name || '-'}</span>
+                  Empresa: <span className="font-medium">{web.client?.name || '-'}</span>
                 </p>
 
                 <span
@@ -150,13 +150,13 @@ export default function Webs() {
                 <div className="flex gap-3 mt-4">
                   <button
                     onClick={() => openModal(web)}
-                    className="text-blue-600 font-medium"
+                    className="px-3 py-1 text-sm font-medium border border-blue-500 text-blue-600 rounded hover:bg-blue-100"
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => handleDelete(web.id)}
-                    className="text-red-600 font-medium"
+                    className="px-3 py-1 text-sm font-medium border border-red-500 text-red-600 rounded hover:bg-red-200 transition"
                   >
                     Eliminar
                   </button>
@@ -171,9 +171,9 @@ export default function Webs() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pagina</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dominio</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Empresa</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
                 </tr>
@@ -197,18 +197,22 @@ export default function Webs() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => openModal(web)}
-                        className="text-blue-500 hover:underline mr-4"
+                        className="px-3 py-1 text-sm font-medium border border-blue-500 text-blue-600 rounded hover:bg-blue-100"
                       >
                         Editar
                       </button>
                       <button
                         onClick={() => handleDelete(web.id)}
-                        className="text-red-500 hover:underline"
+                        className="px-3 py-1 text-sm font-medium border border-red-500 text-red-600 rounded hover:bg-red-200 transition"
                       >
                         Eliminar
                       </button>
+
+                      </div>
+
                     </td>
                   </tr>
                 ))}
@@ -235,14 +239,14 @@ export default function Webs() {
             <form onSubmit={handleSubmit}>
               {!editing && (
                 <div className="mb-4">
-                  <label className="block text-gray-700 mb-2">Cliente</label>
+                  <label className="block text-gray-700 mb-2">Empresa</label>
                   <select
                     value={clientId}
                     onChange={(e) => setClientId(e.target.value)}
                     className="w-full px-3 py-2 border rounded-lg"
                     required
                   >
-                    <option value="">Seleccionar cliente</option>
+                    <option value="">Seleccionar Empresa</option>
                     {clients.map((client) => (
                       <option key={client.id} value={client.id}>
                         {client.name}
@@ -253,7 +257,7 @@ export default function Webs() {
               )}
 
               <div className="mb-4">
-                <label className="block text-gray-700 mb-2">Nombre</label>
+                <label className="block text-gray-700 mb-2">Pagina</label>
                 <input
                   type="text"
                   value={name}

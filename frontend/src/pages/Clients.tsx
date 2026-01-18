@@ -13,8 +13,6 @@ export default function Clients() {
 
   const [userId, setUserId] = useState('');
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
 
   useEffect(() => {
     fetchClients();
@@ -48,14 +46,10 @@ export default function Clients() {
       setEditing(client);
       setUserId(client.user_id.toString());
       setName(client.name);
-      setEmail(client.email);
-      setPhone(client.phone || '');
     } else {
       setEditing(null);
       setUserId('');
       setName('');
-      setEmail('');
-      setPhone('');
     }
     setShowModal(true);
   };
@@ -74,15 +68,11 @@ export default function Clients() {
       if (editing) {
         await api.patch(`/clients/${editing.id}`, {
           name,
-          email,
-          phone,
         });
       } else {
         await api.post('/clients', {
           user_id: Number(userId),
           name,
-          email,
-          phone,
         });
       }
       closeModal();
@@ -140,30 +130,27 @@ export default function Clients() {
     <p className="font-semibold text-base leading-tight">
       {client.name}
     </p>
-    <p className="text-sm text-gray-500">
-      {client.email}
-    </p>
   </div>
 
   {/* Meta info */}
   <div className="text-sm text-gray-600 space-y-0.5">
-    <p>📞 {client.phone || '-'}</p>
     <p className="text-xs text-gray-500">
       Usuario: {client.user?.name || '-'}
     </p>
   </div>
 
   {/* Actions */}
-  <div className="flex justify-end gap-3 mt-3">
-    <button
+  <div className="flex justify-end gap-3">
+        <button
       onClick={() => openModal(client)}
-      className="text-blue-600 text-sm font-medium"
+      className="px-3 py-1 text-sm font-medium border border-blue-500 text-blue-600 rounded hover:bg-blue-100"
     >
+      
       Editar
     </button>
     <button
       onClick={() => handleDelete(client.id)}
-      className="text-red-600 text-sm font-medium"
+      className="px-3 py-1 text-sm font-medium border border-red-500 text-red-600 rounded hover:bg-red-200 transition"
     >
       Eliminar
     </button>
@@ -181,9 +168,7 @@ export default function Clients() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Teléfono</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Empresa</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuario</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
                 </tr>
@@ -193,22 +178,25 @@ export default function Clients() {
                   <tr key={client.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">{client.id}</td>
                     <td className="px-6 py-4">{client.name}</td>
-                    <td className="px-6 py-4">{client.email}</td>
-                    <td className="px-6 py-4">{client.phone || '-'}</td>
                     <td className="px-6 py-4">{client.user?.name || '-'}</td>
                     <td className="px-6 py-4">
-                      <button
-                        onClick={() => openModal(client)}
-                        className="text-blue-500 hover:underline mr-3"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => handleDelete(client.id)}
-                        className="text-red-500 hover:underline"
-                      >
-                        Eliminar
-                      </button>
+                      <div className="flex flex-wrap gap-2">
+                              <button
+      onClick={() => openModal(client)}
+      className="px-3 py-1 text-sm font-medium border border-blue-500 text-blue-600 rounded hover:bg-blue-100"
+    >
+      
+      Editar
+    </button>
+                          <button
+      onClick={() => handleDelete(client.id)}
+      className="px-3 py-1 text-sm font-medium border border-red-500 text-red-600 rounded hover:bg-red-200 transition"
+    >
+      Eliminar
+    </button>
+
+                      </div>
+
                     </td>
                   </tr>
                 ))}
@@ -255,34 +243,13 @@ export default function Clients() {
               )}
 
               <div className="mb-4">
-                <label className="block text-gray-700 mb-2 text-sm">Nombre</label>
+                <label className="block text-gray-700 mb-2 text-sm">Nombre de Empresa</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg text-sm"
                   required
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2 text-sm">Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
-                  required
-                />
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-gray-700 mb-2 text-sm">Teléfono</label>
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
                 />
               </div>
 
